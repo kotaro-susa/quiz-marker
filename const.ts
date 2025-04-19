@@ -1,0 +1,7 @@
+export const GAME_STATUS = {
+  MAIN_MENU: 0,
+  REGISTERING: 1,
+  NOT_STARTED: 2,
+  IN_PROGRESS: 3,
+  END_STATE: 99,
+};
