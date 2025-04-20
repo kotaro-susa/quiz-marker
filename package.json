@@ -14,6 +14,7 @@
     "@mui/material": "^7.0.1",
     "@mui/x-date-pickers": "^7.28.3",
     "@supabase/supabase-js": "^2.49.4",
+    "bcryptjs": "^3.0.2",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.6.2",
     "lucide-react": "^0.488.0",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/bcrypt": "^5.0.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

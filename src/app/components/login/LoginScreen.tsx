@@ -1,54 +1,60 @@
 import React, { useState } from "react";
 import { Heart, Loader2 } from "lucide-react";
 import { useUserStore } from "@/stores/userStore";
-import { supabase } from "@/util/supabaseClient";
+import { loginUser } from "@/util/auth";
+import { useParams } from "next/navigation";
 
 export const LoginScreen = () => {
+  const params = useParams();
   const {
     userName,
     setUserName,
     userBirthday,
     setBirthday,
-    loginError,
-    setLoginError,
+    userPassword,
+    setUserPassword,
+    error,
+    setError,
     isRegister,
     setIsRegister,
   } = useUserStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const handleLoginSubmit = async (e: React.FormEvent) => {
-    setIsSubmitting(true);
-    e.preventDefault();
-    setLoginError("");
-    if (!userName || !userBirthday) {
-      setLoginError("両方の項目を入力してください");
-      return;
-    }
-    if (userBirthday.length !== 6 || !/^\d+$/.test(userBirthday)) {
-      setLoginError("6桁の数字で入力してください");
-      return;
-    }
-    const emailLie = `${userName}@gmail.com`;
-    const userInfo = { email: emailLie, password: userBirthday };
-    if (!isRegister) {
-      const { data, error } = await supabase.auth.signUp(userInfo);
-      if (error) {
-        console.log(error.message);
-      } else {
-        console.log(data);
-        setIsRegister(true);
-      }
-    } else {
-      const { data, error } = await supabase.auth.signInWithPassword(userInfo);
-      if (error) {
-        console.error("ログインエラー", error.message);
-        setIsSubmitting(false);
+    try {
+      setIsSubmitting(true);
+      e.preventDefault();
+      setError("");
+      if (!userName || !userBirthday) {
+        setError("両方の項目を入力してください");
         return;
       }
-      if (data?.session.access_token) {
-        localStorage.setItem("jwt_token", data.session.access_token);
+      if (userBirthday.length !== 4 || !/^\d+$/.test(userBirthday)) {
+        setError("4桁の数字で入力してください");
+        return;
       }
+
+      if (!isRegister) {
+        const res = await fetch(`/api/register/${params.gameId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_name: userName,
+            birthday_code: userBirthday,
+            password: userPassword,
+          }),
+        });
+        if (res.ok) {
+          setIsRegister(true);
+        } else {
+          const data = await res.json();
+          setError(data.error);
+        }
+      } else {
+        loginUser(userName, userBirthday, userPassword);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
   return (
     <div className="w-full max-w-md">
@@ -60,7 +66,7 @@ export const LoginScreen = () => {
           <p className="text-gray-600">ログインして、ゲームに参加しましょう</p>
         ) : (
           <p className="text-gray-600">
-            ようこそ！お名前と誕生日を入力してください
+            ようこそ！お名前と誕生日とパスワードを入力してください
           </p>
         )}
       </div>
@@ -89,7 +95,7 @@ export const LoginScreen = () => {
               htmlFor="birthdate"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              誕生日（日付）と生まれ年の下2桁を入力してください。(例: 042894)
+              誕生日を入力してください。(例: 0531)
             </label>
             <input
               type="text"
@@ -101,8 +107,25 @@ export const LoginScreen = () => {
               placeholder="0531"
             />
           </div>
+          <div>
+            <label
+              htmlFor="birthdate"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              6桁のパスワードを設定してください。
+            </label>
+            <input
+              type="text"
+              id="birthdate"
+              value={userPassword}
+              onChange={(e) => setUserPassword(e.target.value)}
+              maxLength={6}
+              className="text-black w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition duration-200 placeholder-gray-400"
+              placeholder="123tg5"
+            />
+          </div>
 
-          {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
             className="w-full bg-pink-500 text-white py-3 rounded-lg hover:bg-pink-600 transition duration-200 font-medium"

@@ -6,8 +6,10 @@ type UserState = {
   setUserName: (name: string) => void;
   userBirthday: string;
   setBirthday: (birthday: string) => void;
-  loginError: string;
-  setLoginError: (error: string) => void;
+  userPassword: string;
+  setUserPassword: (password: string) => void;
+  error: string;
+  setError: (error: string) => void;
   isRegister: boolean;
   setIsRegister: (isLogin: boolean) => void;
 };
@@ -16,8 +18,10 @@ export const useUserStore = create<UserState>((set) => ({
   setUserName: (name) => set({ userName: name }),
   userBirthday: "",
   setBirthday: (birthday) => set({ userBirthday: birthday }),
-  loginError: "",
-  setLoginError: (error) => set({ loginError: error }),
+  userPassword: "",
+  setUserPassword: (password) => set({ userPassword: password }),
+  error: "",
+  setError: (error) => set({ error }),
   isRegister: false,
   setIsRegister: (isLogin: boolean) => set({ isRegister: isLogin }),
 }));
