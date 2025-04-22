@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Heart, Loader2 } from "lucide-react";
 import { useUserStore } from "@/stores/userStore";
-import { loginUser } from "@/util/auth";
 import { useParams } from "next/navigation";
+import { useGameStore } from "@/stores/gameStore";
 
 export const LoginScreen = () => {
   const params = useParams();
@@ -11,13 +11,12 @@ export const LoginScreen = () => {
     setUserName,
     userBirthday,
     setBirthday,
-    userPassword,
-    setUserPassword,
     error,
     setError,
     isRegister,
     setIsRegister,
   } = useUserStore();
+  const { setCurrentState } = useGameStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const handleLoginSubmit = async (e: React.FormEvent) => {
     try {
@@ -25,7 +24,7 @@ export const LoginScreen = () => {
       e.preventDefault();
       setError("");
       if (!userName || !userBirthday) {
-        setError("両方の項目を入力してください");
+        setError("ユーザー名と誕生日は必須です");
         return;
       }
       if (userBirthday.length !== 4 || !/^\d+$/.test(userBirthday)) {
@@ -40,7 +39,6 @@ export const LoginScreen = () => {
           body: JSON.stringify({
             user_name: userName,
             birthday_code: userBirthday,
-            password: userPassword,
           }),
         });
         if (res.ok) {
@@ -50,7 +48,21 @@ export const LoginScreen = () => {
           setError(data.error);
         }
       } else {
-        loginUser(userName, userBirthday, userPassword);
+        const res = await fetch(`/api/login/${params.gameId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_name: userName,
+            birthday_code: userBirthday,
+          }),
+        });
+        const result = await res.json();
+        if (res.ok) {
+          localStorage.setItem("jwtToken", result.token);
+          setCurrentState("waiting");
+        } else {
+          setError(result.message || "ログイン失敗");
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -107,24 +119,6 @@ export const LoginScreen = () => {
               placeholder="0531"
             />
           </div>
-          <div>
-            <label
-              htmlFor="birthdate"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              6桁のパスワードを設定してください。
-            </label>
-            <input
-              type="text"
-              id="birthdate"
-              value={userPassword}
-              onChange={(e) => setUserPassword(e.target.value)}
-              maxLength={6}
-              className="text-black w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition duration-200 placeholder-gray-400"
-              placeholder="123tg5"
-            />
-          </div>
-
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"

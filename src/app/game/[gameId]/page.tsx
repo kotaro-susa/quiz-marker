@@ -1,25 +1,43 @@
 "use client";
-
-import { CompletionScreen } from "@/app/components/completion/CompletionScreen";
-import { LoginScreen } from "@/app/components/login/LoginScreen";
-import { QuizScreen } from "@/app/components/quiz/QuizScreen";
-import { WaitingScreen } from "@/app/components/waiting/WaitingScreen";
+import { CompletionScreen } from "@/components/completion/CompletionScreen";
+import { LoginScreen } from "@/components/login/LoginScreen";
+import { QuizScreen } from "@/components/quiz/QuizScreen";
+import { WaitingScreen } from "@/components/waiting/WaitingScreen";
 import { useGameStore } from "@/stores/gameStore";
 import React, { useEffect, useState } from "react";
-
-type QuizState = "login" | "waiting" | "quiz" | "completion";
+import { jwtDecode } from "jwt-decode";
+import { isJwtExpired } from "@/util/jwt";
+import { JwtPayload } from "@/util/type";
+import { useParams } from "next/navigation";
+import { useUserStore } from "@/stores/userStore";
 
 function App() {
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const { currentState, setCurrentState } = useGameStore();
+  const params = useParams();
+  const { setUserName, setBirthday, setIsRegister } = useUserStore();
 
   useEffect(() => {
-    setCurrentState("login");
-  }, []);
+    // jwtTokenを持っているかのチェックを行い、初期状態を決定する
+    const token = localStorage.getItem("jwtToken");
+    if (token) {
+      const decoded = jwtDecode<JwtPayload>(token);
+      if (decoded.gameId === params.gameId) {
+        const { username, birthday } = decoded;
+        setUserName(username);
+        setBirthday(birthday);
+        setIsRegister(true);
+        setCurrentState("login");
+      }
+    } else {
+      setIsRegister(false);
+      setCurrentState("login");
+    }
+  }, [params.gameId]);
 
-  const handleAnswerSelect = (answer: string) => {
-    setSelectedAnswer(answer);
+  const handleAnswerSelect = (index: number) => {
+    setSelectedAnswer(index);
   };
 
   const handleStart = () => {

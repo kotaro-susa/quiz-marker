@@ -1,28 +1,30 @@
 import React, { useState, useEffect } from "react";
-import { Timer, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
+import { useQuizStore } from "@/stores/quizStore";
+import { useParams } from "next/navigation";
+import { supabase } from "@/util/supabaseClient";
+import { useGameStore } from "@/stores/gameStore";
+import { setupQuizChannel } from "@/util/setupQuizChannel";
 
 interface WaitingScreenProps {
   onStart: () => void;
 }
 
 export const WaitingScreen: React.FC<WaitingScreenProps> = ({ onStart }) => {
-  const [countdown, setCountdown] = useState(1); // 10秒のカウントダウン
   const [isReady, setIsReady] = useState(false);
-
+  const { currentState, setCurrentState } = useGameStore();
+  const setCurrentQuiz = useQuizStore((state) => state.setCurrentQuiz);
+  const params = useParams();
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setIsReady(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
+    const channel = setupQuizChannel(
+      params.gameId as string,
+      setCurrentQuiz,
+      setCurrentState
+    );
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [params.gameId, setCurrentQuiz, setCurrentState]);
 
   return (
     <div className="w-full max-w-md">
@@ -34,12 +36,7 @@ export const WaitingScreen: React.FC<WaitingScreenProps> = ({ onStart }) => {
               Wedding Quiz
             </span>
           </div>
-          <div className="flex items-center bg-pink-50 px-4 py-2 rounded-full">
-            <Timer className="w-5 h-5 text-pink-500 mr-2" />
-            <span className="text-pink-600 font-medium">{countdown}秒</span>
-          </div>
         </div>
-
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
             {isReady

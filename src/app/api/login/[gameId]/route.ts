@@ -1,5 +1,5 @@
+import { generateJwtToken } from "@/util/jwt";
 import { supabase } from "@/util/supabaseClient";
-import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -17,33 +17,32 @@ export async function POST(
     const game_id = params.gameId;
     const { user_name, birthday_code } = registerSchema.parse(body);
 
-    // 既に同じゲームで同じユーザーネームが存在するかをチェックする
-    const { data: existingUser } = await supabase
+    // 該当するユーザー情報を取得する
+    const { data: user, error } = await supabase
       .from("users")
-      .select("id")
+      .select("id,user_name,game_id")
       .eq("user_name", user_name)
+      .eq("birthday_code", birthday_code)
       .eq("game_id", game_id)
       .single();
 
-    if (existingUser) {
+    if (error || !user) {
       return NextResponse.json(
-        { error: "このユーザー名は既に使われています。" },
-        { status: 400 }
+        { message: "認証失敗:ユーザーが見つかりません" },
+        { status: 401 }
       );
     }
+    const token = generateJwtToken({
+      id: user.id,
+      game_Id: user.game_id,
+      user_name: user.user_name,
+      birthday_code: birthday_code,
+    });
 
-    const { data, error } = await supabase
-      .from("users")
-      .insert([{ user_name, birthday_code, game_id }]);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json(
-      { message: "ユーザー登録成功", data },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      token,
+      user: { id: user.id, user_name: user.user_name },
+    });
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json(

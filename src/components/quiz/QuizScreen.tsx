@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { Heart, X, Timer, Loader2 } from "lucide-react";
+import { useGameStore } from "@/stores/gameStore";
+import { useQuizStore } from "@/stores/quizStore";
 
 interface QuizScreenProps {
-  selectedAnswer: string | null;
-  onAnswerSelect: (answer: string) => void;
+  selectedAnswer: number | null;
+  onAnswerSelect: (answer: number) => void;
   currentQuestion: number;
   onQuizComplete: () => void;
 }
@@ -15,13 +17,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
   onQuizComplete,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const answers = [
-    { id: "A", text: "新郎の好きな食べ物は？" },
-    { id: "B", text: "新婦の出身地は？" },
-    { id: "C", text: "二人の出会いのきっかけは？" },
-    { id: "D", text: "新郎が新婦にプロポーズした場所は？" },
-  ];
+  const { currentQuiz, setCurrentQuiz } = useQuizStore();
 
   const handleSubmit = () => {
     if (!selectedAnswer) return;
@@ -48,46 +44,35 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        <div className="flex justify-between items-center mb-8">
-          <span className="text-gray-600 font-medium">
-            Quiz・{String(currentQuestion).padStart(2, "0")}
-          </span>
-          <div className="flex items-center text-gray-600 bg-pink-50 px-3 py-1 rounded-full">
-            <Timer className="w-4 h-4 mr-1 text-pink-500" />
-            03:00 min
-          </div>
-        </div>
-
         <div className="mb-8">
           <p className="text-lg font-medium text-gray-800 leading-relaxed">
-            新郎新婦にまつわる質問です。正しい答えを選んでください。
+            {currentQuiz && currentQuiz.question}
           </p>
         </div>
-
         <div className="space-y-3">
-          {answers.map((answer) => (
-            <button
-              key={answer.id}
-              onClick={() => onAnswerSelect(answer.id)}
-              className={`w-full p-4 rounded-xl flex items-center space-x-3 transition-all duration-200 ${
-                selectedAnswer === answer.id
-                  ? "bg-pink-500 text-white shadow-lg shadow-pink-200"
-                  : "bg-pink-50 text-gray-700 hover:bg-pink-100"
-              }`}
-            >
-              <span
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  selectedAnswer === answer.id
-                    ? "bg-white bg-opacity-20 text-pink-600"
-                    : "bg-pink-200 text-pink-600"
+          {currentQuiz &&
+            currentQuiz.options.map((option, index) => (
+              <button
+                key={index}
+                onClick={() => onAnswerSelect(index)}
+                className={`w-full p-4 rounded-xl flex items-center space-x-3 transition-all duration-200 ${
+                  selectedAnswer === index
+                    ? "bg-pink-500 text-white shadow-lg shadow-pink-200"
+                    : "bg-pink-50 text-gray-700 hover:bg-pink-100"
                 }`}
               >
-                {answer.id}
-              </span>
-              <span>{answer.text}</span>
-            </button>
-          ))}
+                <span
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    selectedAnswer === index
+                      ? "bg-white bg-opacity-20 text-pink-600"
+                      : "bg-pink-200 text-pink-600"
+                  }`}
+                >
+                  {index}
+                </span>
+                <span>{option}</span>
+              </button>
+            ))}
         </div>
 
         <button
@@ -95,7 +80,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
           disabled={!selectedAnswer || isSubmitting}
           className="w-full mt-8 bg-pink-500 text-white py-4 rounded-xl font-medium hover:bg-pink-600 transition duration-200 shadow-lg shadow-pink-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          回答する
+          決定
         </button>
       </div>
 
