@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Heart, Loader2 } from "lucide-react";
 import { useUserStore } from "@/stores/userStore";
 import { useParams } from "next/navigation";
@@ -7,6 +7,7 @@ import { useGameStore } from "@/stores/gameStore";
 export const LoginScreen = () => {
   const params = useParams();
   const {
+    setUserId,
     userName,
     setUserName,
     userBirthday,
@@ -16,8 +17,9 @@ export const LoginScreen = () => {
     isRegister,
     setIsRegister,
   } = useUserStore();
-  const { setCurrentState } = useGameStore();
+  const { setUserCurrentState, gameTitle } = useGameStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     try {
       setIsSubmitting(true);
@@ -59,7 +61,8 @@ export const LoginScreen = () => {
         const result = await res.json();
         if (res.ok) {
           localStorage.setItem("jwtToken", result.token);
-          setCurrentState("waiting");
+          setUserId(result.user.id);
+          setUserCurrentState("waiting");
         } else {
           setError(result.message || "ログイン失敗");
         }
@@ -72,7 +75,9 @@ export const LoginScreen = () => {
     <div className="w-full max-w-md">
       <div className="text-center mb-8">
         <Heart className="w-12 h-12 text-pink-500 mx-auto mb-4" />
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Wedding Quiz</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          {gameTitle ? gameTitle : "クリスタルアナザースカイ"}
+        </h1>
 
         {isRegister ? (
           <p className="text-gray-600">ログインして、ゲームに参加しましょう</p>

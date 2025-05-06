@@ -1,29 +1,36 @@
 // app/api/game/[gameId]/route.ts
+import { getGameInfo } from "@/app/infrastructure/gameRepository";
+
 import { NextRequest, NextResponse } from "next/server";
-
-type GameInfo = {
-  gameId: string;
-  gameTitle: string;
+type Params = Promise<{ [key: string]: string }>;
+type Props = {
+  params: Params;
 };
 
-const mockGameData: Record<string, GameInfo> = {
-  "123": { gameId: "123", gameTitle: "康太郎と由衣のクイズ大会" },
-
-  "456": { gameId: "456", gameTitle: "Game B" },
-};
-
-export async function GET(
-  req: NextRequest,
-  context: { params: Promise<{ gameId: string }> }
-) {
-  const { gameId } = await context.params;
-
-  if (!gameId || !mockGameData[gameId]) {
+export async function GET(req: NextRequest, { params }: Props) {
+  const { gameId } = await params;
+  if (!gameId) {
     return NextResponse.json(
       { message: "ゲームが見つかりません" },
       { status: 404 }
     );
   }
 
-  return NextResponse.json(mockGameData[gameId]);
+  const { data, error } = await getGameInfo(gameId);
+  if (error) {
+    return NextResponse.json(
+      { message: "ゲーム情報の取得に失敗しました。" },
+      { status: 500 }
+    );
+  }
+
+  if (!data) {
+    return NextResponse.json(
+      { message: "指定されたゲームが見つかりません。" },
+      { status: 404 }
+    );
+  }
+
+  const { title, status } = data;
+  return NextResponse.json({ title, status });
 }

@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { jwtDecode } from "jwt-decode";
-import { JwtPayload } from "./type";
+import { JwtPayload } from "./const";
 
 const secretKey =
   process.env.EXT_PUBLIC_JWT_SECRET_KEY || "your-default-secret-key";
@@ -31,8 +31,8 @@ export function verifyJwtToken(token: string) {
 export function isJwtExpired(token: string): boolean {
   try {
     const decoded = jwtDecode<JwtPayload>(token);
-    const now = Date.now() / 1000; // 現在時刻を秒に変換
-    return decoded.exp < now; // 現在より過去なら期限切れ
+    const now = Date.now() / 1000;
+    return decoded.exp < now;
   } catch (e) {
     console.error("トークンのデコードに失敗しました", e);
     return true;

@@ -1,37 +1,38 @@
+// app/api/game/[gameId]/register/route.ts
 import { generateJwtToken } from "@/util/jwt";
-import { supabase } from "@/util/supabaseClient";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { findUserByNameAndBirthday } from "@/app/infrastructure/userRepository";
 
 const registerSchema = z.object({
   user_name: z.string().min(2),
   birthday_code: z.string().length(4),
 });
 
-export async function POST(
-  req: Request,
-  { params }: { params: { gameId: string } }
-) {
+type Params = Promise<{ [key: string]: string }>;
+type Props = {
+  params: Params;
+};
+
+export async function POST(req: Request, { params }: Props) {
   try {
     const body = await req.json();
-    const game_id = params.gameId;
+    const { gameId } = await params;
     const { user_name, birthday_code } = registerSchema.parse(body);
 
-    // 該当するユーザー情報を取得する
-    const { data: user, error } = await supabase
-      .from("users")
-      .select("id,user_name,game_id")
-      .eq("user_name", user_name)
-      .eq("birthday_code", birthday_code)
-      .eq("game_id", game_id)
-      .single();
+    const { user, error } = await findUserByNameAndBirthday(
+      user_name,
+      birthday_code,
+      gameId
+    );
 
     if (error || !user) {
       return NextResponse.json(
-        { message: "認証失敗:ユーザーが見つかりません" },
+        { message: "認証失敗: ユーザーが見つかりません" },
         { status: 401 }
       );
     }
+
     const token = generateJwtToken({
       id: user.id,
       game_Id: user.game_id,

@@ -1,36 +1,57 @@
-import React, { useState } from "react";
-import { Heart, X, Timer, Loader2 } from "lucide-react";
-import { useGameStore } from "@/stores/gameStore";
+import React, { useEffect, useState } from "react";
+import { Heart, Loader2 } from "lucide-react";
 import { useQuizStore } from "@/stores/quizStore";
+import { useParams } from "next/navigation";
+import { setupQuizChannel } from "@/app/infrastructure/setupQuizChannel";
+import { useGameStore } from "@/stores/gameStore";
+import { supabase } from "@/util/supabaseClient";
+import { useUserStore } from "@/stores/userStore";
+import { QuizState } from "@/util/const";
 
-interface QuizScreenProps {
-  selectedAnswer: number | null;
-  onAnswerSelect: (answer: number) => void;
-  currentQuestion: number;
-  onQuizComplete: () => void;
-}
-
-export const QuizScreen: React.FC<QuizScreenProps> = ({
-  selectedAnswer,
-  onAnswerSelect,
-  currentQuestion,
-  onQuizComplete,
-}) => {
+export const QuizScreen = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { currentQuiz, setCurrentQuiz } = useQuizStore();
-
-  const handleSubmit = () => {
-    if (!selectedAnswer) return;
-
+  const { currentQuiz, selectedAnswer, setSelectedAnswer } = useQuizStore();
+  const { setUserCurrentState, userCurrentState, gameTitle } = useGameStore();
+  const { userId } = useUserStore();
+  const params = useParams();
+  const handleSubmit = async () => {
+    if (!selectedAnswer) {
+      return;
+    }
     setIsSubmitting(true);
-
-    setTimeout(() => {
-      setIsSubmitting(false);
-      if (currentQuestion === 2) {
-        onQuizComplete();
+    try {
+      await fetch(`/api/submit-answer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId: params.gameId,
+          quizId: currentQuiz?.id,
+          userId: userId,
+          answer: selectedAnswer - 1,
+          isCorrect:
+            currentQuiz?.correct_index === selectedAnswer - 1 ? true : false,
+        }),
+      });
+      if (userCurrentState === QuizState.BEFORE_COMPLETION) {
+        setUserCurrentState(QuizState.COMPLETION);
       }
-    }, 3000);
+    } catch (error) {
+      console.error("回答の送信に失敗しました", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  // useEffect(() => {
+  //   const channel = setupQuizChannel(
+  //     params.gameId as string,
+  //     setCurrentQuiz,
+  //     setUserCurrentState
+  //   );
+  //   return () => {
+  //     supabase.removeChannel(channel);
+  //   };
+  // }, [params.gameId, setCurrentQuiz, setUserCurrentState]);
 
   return (
     <div className="w-full max-w-md relative">
@@ -38,11 +59,10 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center space-x-2">
             <Heart className="w-5 h-5 text-pink-500" />
-            <span className="text-gray-800 font-medium">新郎新婦クイズ</span>
+            <span className="text-gray-800 font-medium">
+              {gameTitle ? gameTitle : "クリスタルアナザースカイ"}
+            </span>
           </div>
-          <button className="text-gray-500 hover:text-gray-700 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
         </div>
         <div className="mb-8">
           <p className="text-lg font-medium text-gray-800 leading-relaxed">
@@ -53,22 +73,22 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
           {currentQuiz &&
             currentQuiz.options.map((option, index) => (
               <button
-                key={index}
-                onClick={() => onAnswerSelect(index)}
+                key={index + 1}
+                onClick={() => setSelectedAnswer(index + 1)}
                 className={`w-full p-4 rounded-xl flex items-center space-x-3 transition-all duration-200 ${
-                  selectedAnswer === index
+                  selectedAnswer === index + 1
                     ? "bg-pink-500 text-white shadow-lg shadow-pink-200"
                     : "bg-pink-50 text-gray-700 hover:bg-pink-100"
                 }`}
               >
                 <span
                   className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    selectedAnswer === index
+                    selectedAnswer === index + 1
                       ? "bg-white bg-opacity-20 text-pink-600"
                       : "bg-pink-200 text-pink-600"
                   }`}
                 >
-                  {index}
+                  {String.fromCharCode(65 + index)}
                 </span>
                 <span>{option}</span>
               </button>
@@ -90,7 +110,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
           <div className="bg-white rounded-2xl p-8 flex flex-col items-center shadow-xl">
             <Loader2 className="w-12 h-12 text-pink-500 animate-spin mb-4" />
             <p className="text-gray-800 font-medium text-lg">
-              回答を送信中です
+              回答を送信中です。次のクイズが始まるまでお待ちください。
             </p>
           </div>
         </div>
